@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>군사용 MR 훈련 사후 강평 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary-bg: #0a0e1a;
+        --secondary-bg: #1a1e2e;
+        --card-bg: #242946;
+        --accent-color: #4c9eff;
+        --success-color: #4caf50;
+        --warning-color: #ff9800;
+        --error-color: #f44336;
+        --text-primary: #ffffff;
+        --text-secondary: #b0b0b0;
+        --border-color: #3a3a5c;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, var(--primary-bg) 0%, #1a1e36 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+
+      .header {
+        background: var(--secondary-bg);
+        padding: 1.5rem 2rem;
+        border-bottom: 2px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+
+      .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .header h1 {
+        color: var(--accent-color);
+        font-size: 1.8rem;
+        font-weight: 700;
+      }
+
+      .session-info {
+        display: flex;
+        gap: 2rem;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+      }
+
+      .session-info span {
+        background: var(--card-bg);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+      }
+
+      .main-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+        display: grid;
+        grid-template-columns: 320px 1fr 300px;
+        gap: 2rem;
+      }
+
+      .sidebar-left {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .sidebar-right {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+      }
+
+      .card:hover {
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 20px rgba(76, 158, 255, 0.1);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+      }
+
+      .score-large {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--accent-color);
+        text-align: center;
+        margin: 1rem 0;
+      }
+
+      .score-medium {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--success-color);
+        text-align: center;
+        margin: 0.5rem 0;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: var(--secondary-bg);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 0.5rem 0;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          var(--success-color),
+          var(--accent-color)
+        );
+        transition: width 0.3s ease;
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+      }
+
+      .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: var(--secondary-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+      }
+
+      .stat-value {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: var(--accent-color);
+        margin-bottom: 0.25rem;
+      }
+
+      .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .alert-list {
+        list-style: none;
+      }
+
+      .alert-item {
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        border-radius: 6px;
+        border-left: 4px solid;
+        font-size: 0.9rem;
+      }
+
+      .alert-error {
+        background: rgba(244, 67, 54, 0.1);
+        border-left-color: var(--error-color);
+        color: #ffcdd2;
+      }
+
+      .alert-warning {
+        background: rgba(255, 152, 0, 0.1);
+        border-left-color: var(--warning-color);
+        color: #ffe0b2;
+      }
+
+      .metrics-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+
+      .metrics-table th,
+      .metrics-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .metrics-table th {
+        background: var(--secondary-bg);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .metrics-table td {
+        color: var(--text-primary);
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+      }
+
+      .status-ok {
+        background: var(--success-color);
+      }
+      .status-warning {
+        background: var(--warning-color);
+      }
+      .status-error {
+        background: var(--error-color);
+      }
+
+      .chart-container {
+        position: relative;
+        height: 350px;
+        margin: 1rem 0;
+      }
+
+      #radarChart {
+        background: transparent !important;
+      }
+
+      canvas {
+        background: transparent !important;
+      }
+
+      .evaluation-text {
+        background: var(--secondary-bg);
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        line-height: 1.8;
+        font-size: 0.95rem;
+      }
+
+      .team-members {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .member-card {
+        background: var(--secondary-bg);
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .member-card:hover {
+        border-color: var(--accent-color);
+        background: rgba(76, 158, 255, 0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(76, 158, 255, 0.2);
+      }
+
+      .member-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--accent-color);
+        margin: 0 auto 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1.2rem;
+      }
+
+      .rank-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .rank-excellent {
+        background: var(--success-color);
+        color: white;
+      }
+      .rank-good {
+        background: var(--accent-color);
+        color: white;
+      }
+      .rank-average {
+        background: var(--warning-color);
+        color: white;
+      }
+      .rank-poor {
+        background: var(--error-color);
+        color: white;
+      }
+
+      .control-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin: 1rem 0;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .control-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+      }
+
+      .radio-group {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        background: var(--secondary-bg);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+      }
+
+      .radio-item:hover {
+        border-color: var(--accent-color);
+        background: rgba(76, 158, 255, 0.1);
+      }
+
+      .radio-item input[type="radio"] {
+        accent-color: var(--accent-color);
+      }
+
+      .styled-select {
+        padding: 0.75rem 1rem;
+        background: var(--secondary-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .styled-select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(76, 158, 255, 0.2);
+      }
+
+      .styled-select option {
+        background: var(--secondary-bg);
+        color: var(--text-primary);
+      }
+
+      .comparison-selects {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .vs-text {
+        font-weight: 600;
+        color: var(--accent-color);
+        font-size: 1.1rem;
+      }
+
+      .icon {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+        fill: currentColor;
+      }
+
+      .icon-large {
+        width: 24px;
+        height: 24px;
+      }
+
+      @media (max-width: 1200px) {
+        .main-container {
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+        }
+
+        .header-content {
+          flex-direction: column;
+          gap: 1rem;
+          text-align: center;
+        }
+
+        .session-info {
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <h1>
+          <svg
+            class="icon icon-large"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+            />
+          </svg>
+          군사용 MR 훈련 사후 강평 대시보드
+        </h1>
+        <div class="session-info">
+          <span>세션 ID: S-20250826-001</span>
+          <span>훈련 일자: 2025-08-26</span>
+          <span>시나리오: 도시전투 훈련</span>
+          <span>참가자: 16명</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-container">
+      <!-- 좌측 사이드바 -->
+      <div class="sidebar-left">
+        <!-- 개인 종합 점수 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 15.5c1.66 0 3-1.34 3-3V9c0-1.66-1.34-3-3-3s-3 1.34-3 3v3.5c0 1.66 1.34 3 3 3zM8 9c0-2.21 1.79-4 4-4s4 1.79 4 4v3.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V9zm4 6.5L9 18v3h6v-3l-3-2.5z"
+              />
+            </svg>
+            개인 종합 점수
+          </div>
+          <div class="score-large">85</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 85%"></div>
+          </div>
+          <div
+            style="
+              text-align: center;
+              color: var(--text-secondary);
+              font-size: 0.9rem;
+            "
+          >
+            상위 15% (A급)
+          </div>
+          <div
+            class="rank-badge rank-excellent"
+            style="width: 100%; text-align: center; margin-top: 1rem"
+          >
+            우수
+          </div>
+        </div>
+
+        <!-- 팀 종합 점수 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM4 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm5 0c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM16 8v6h2l-3 4-3-4h2V8h2zM4 8v6h2l-3 4-3-4h2V8h2zm5 0v6h2l-3 4-3-4h2V8h2z"
+              />
+            </svg>
+            팀 종합 점수
+          </div>
+          <div class="score-medium">78</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 78%"></div>
+          </div>
+          <div
+            style="
+              text-align: center;
+              color: var(--text-secondary);
+              font-size: 0.9rem;
+            "
+          >
+            전체 5팀 중 2위
+          </div>
+          <div
+            class="rank-badge rank-good"
+            style="width: 100%; text-align: center; margin-top: 1rem"
+          >
+            양호
+          </div>
+        </div>
+
+        <!-- 핵심 지표 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"
+              />
+            </svg>
+            핵심 지표
+          </div>
+          <div class="stat-grid">
+            <div class="stat-item">
+              <div class="stat-value">92%</div>
+              <div class="stat-label">임무완료율</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">78%</div>
+              <div class="stat-label">명중률</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">0.72</div>
+              <div class="stat-label">경로효율</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">320ms</div>
+              <div class="stat-label">OODA지연</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 경고 및 알림 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+            </svg>
+            주요 경고
+          </div>
+          <ul class="alert-list">
+            <li class="alert-item alert-warning">
+              경로 효율 급락 감지 (0.65 → 0.72)
+            </li>
+            <li class="alert-item alert-error">ROE 위반 1회 발생 (14:23:15)</li>
+            <li class="alert-item alert-warning">
+              HRV 급락 구간 감지 (스트레스 증가)
+            </li>
+            <li class="alert-item alert-warning">
+              탄착군 분산 증가 (CEP +15%)
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 메인 콘텐츠 -->
+      <div class="main-content">
+        <!-- 선택 컨트롤 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M9 11H7v6h2v-6zm4 0h-2v6h2v-6zm4 0h-2v6h2v-6zM3 5v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2zm16 0v3H5V5h14z"
+              />
+            </svg>
+            분석 대상 선택
+          </div>
+          <div class="control-section">
+            <div class="control-group">
+              <label class="control-label">분석 유형:</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    name="analysisType"
+                    value="individual"
+                    checked
+                  />
+                  <span>개인별 분석</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="analysisType" value="team" />
+                  <span>팀별 분석</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="analysisType" value="comparison" />
+                  <span>비교 분석</span>
+                </label>
+              </div>
+            </div>
+            <div class="control-group" id="individualControl">
+              <label class="control-label">개인 선택:</label>
+              <select id="playerSelect" class="styled-select">
+                <option value="P_A01">P_A01 (본인 - 소대장)</option>
+              </select>
+            </div>
+            <div class="control-group" id="teamControl" style="display: none">
+              <label class="control-label">팀 선택:</label>
+              <select id="teamSelect" class="styled-select">
+                <option value="team_a">A팀 (P_A01~P_A04)</option>
+                <option value="team_b">B팀 (P_A05~P_A08)</option>
+                <option value="team_c">C팀 (P_A09~P_A12)</option>
+                <option value="team_d">D팀 (P_A13~P_A16)</option>
+                <option value="all_teams">전체 팀 평균</option>
+              </select>
+            </div>
+            <div
+              class="control-group"
+              id="comparisonControl"
+              style="display: none"
+            >
+              <label class="control-label">비교 대상:</label>
+              <div class="comparison-selects">
+                <select id="comparison1" class="styled-select">
+                  <option value="P_A01">P_A01 (본인)</option>
+                </select>
+                <span class="vs-text">vs</span>
+                <select id="comparison2" class="styled-select">
+                  <option value="team_avg">팀 평균</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 능력 레이더 차트 -->
+        <div class="card">
+          <div class="card-title" id="chartTitle">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+              />
+            </svg>
+            종합 능력 평가 (다각형 분석) - P_A01
+          </div>
+          <div class="chart-container">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 세부 측정 지표 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"
+              />
+            </svg>
+            세부 측정 지표
+          </div>
+          <table class="metrics-table">
+            <thead>
+              <tr>
+                <th>분야</th>
+                <th>측정항목</th>
+                <th>측정값</th>
+                <th>기준값</th>
+                <th>상태</th>
+                <th>점수</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td rowspan="3">기동능력</td>
+                <td>경로 효율</td>
+                <td>0.72</td>
+                <td>≥ 0.70</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>75</td>
+              </tr>
+              <tr>
+                <td>평균 속도</td>
+                <td>2.3 m/s</td>
+                <td>2.0-3.0 m/s</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>82</td>
+              </tr>
+              <tr>
+                <td>노출 시간</td>
+                <td>15.2 s</td>
+                <td>≤ 20 s</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>88</td>
+              </tr>
+              <tr>
+                <td rowspan="3">사격능력</td>
+                <td>명중률</td>
+                <td>78%</td>
+                <td>≥ 70%</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>85</td>
+              </tr>
+              <tr>
+                <td>CEP (원형오차)</td>
+                <td>8.5 cm</td>
+                <td>≤ 10 cm</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>78</td>
+              </tr>
+              <tr>
+                <td>반동 안정도</td>
+                <td>0.85</td>
+                <td>≥ 0.80</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>73</td>
+              </tr>
+              <tr>
+                <td rowspan="2">상황조치능력</td>
+                <td>OODA 지연</td>
+                <td>320 ms</td>
+                <td>≤ 300 ms</td>
+                <td>
+                  <span class="status-indicator status-warning"></span>경고
+                </td>
+                <td>68</td>
+              </tr>
+              <tr>
+                <td>ROE 준수율</td>
+                <td>95%</td>
+                <td>100%</td>
+                <td>
+                  <span class="status-indicator status-warning"></span>경고
+                </td>
+                <td>60</td>
+              </tr>
+              <tr>
+                <td rowspan="2">개인임무능력</td>
+                <td>임무 완료율</td>
+                <td>92%</td>
+                <td>≥ 90%</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>95</td>
+              </tr>
+              <tr>
+                <td>경로 이탈률</td>
+                <td>3%</td>
+                <td>≤ 5%</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>88</td>
+              </tr>
+              <tr>
+                <td rowspan="3">신체반응분석</td>
+                <td>스트레스 지수</td>
+                <td>68</td>
+                <td>≤ 70</td>
+                <td>
+                  <span class="status-indicator status-warning"></span>주의
+                </td>
+                <td>65</td>
+              </tr>
+              <tr>
+                <td>피로 스코어</td>
+                <td>45</td>
+                <td>≤ 50</td>
+                <td><span class="status-indicator status-ok"></span>정상</td>
+                <td>78</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 훈련 타임라인 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"
+              />
+            </svg>
+            훈련 타임라인 & 주요 이벤트
+          </div>
+          <div class="chart-container">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 총평 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+              />
+            </svg>
+            종합 평가 및 총평
+          </div>
+          <div class="evaluation-text">
+            <strong>전체 평가:</strong> 참가자 P_A01은 이번 도시전투 훈련에서
+            <strong>우수한 성과</strong>를 보여주었습니다. 특히 기동능력과
+            개인임무 수행 능력에서 뛰어난 역량을 발휘했습니다. <br /><br />
+            <strong>주요 강점:</strong>
+            <ul style="margin: 1rem 0; padding-left: 2rem">
+              <li>높은 임무 완료율 (92%) - 목표치 대비 우수</li>
+              <li>효율적인 기동경로 설정 및 실행</li>
+              <li>안정적인 사격 정확도 유지</li>
+              <li>낮은 경로 이탈률로 뛰어난 공간 인식능력 입증</li>
+            </ul>
+
+            <strong>개선 필요 영역:</strong>
+            <ul style="margin: 1rem 0; padding-left: 2rem">
+              <li>
+                상황 판단 속도 개선 필요 (OODA 지연 320ms → 목표 300ms 이하)
+              </li>
+              <li>ROE(교전수칙) 숙지 및 준수 강화 필요</li>
+              <li>고스트레스 상황에서의 신체적 안정성 향상</li>
+            </ul>
+
+            <strong>차후 훈련 권고사항:</strong>
+            스트레스 상황에서의 의사결정 훈련과 ROE 시나리오 기반 반복훈련을
+            통해 상황조치능력을 향상시키는 것을 권장합니다. 전반적으로는 매우
+            우수한 수준의 전투 역량을 보유하고 있으며, 소수의 개선점만
+            보완된다면 최우수 등급 달성이 가능할 것으로 판단됩니다.
+          </div>
+        </div>
+      </div>
+
+      <!-- 우측 사이드바 -->
+      <div class="sidebar-right">
+        <!-- 팀원 현황 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM4 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm5 0c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM16 8v6h2l-3 4-3-4h2V8h2zM4 8v6h2l-3 4-3-4h2V8h2zm5 0v6h2l-3 4-3-4h2V8h2z"
+              />
+            </svg>
+            팀원 현황 (16명)
+          </div>
+          <div class="team-filter">
+            <select
+              id="teamFilter"
+              class="styled-select"
+              style="width: 100%; margin-bottom: 1rem"
+            >
+              <option value="all">전체 팀원 (16명)</option>
+              <option value="team_a">A팀 (P_A01~P_A04)</option>
+              <option value="team_b">B팀 (P_A05~P_A08)</option>
+              <option value="team_c">C팀 (P_A09~P_A12)</option>
+              <option value="team_d">D팀 (P_A13~P_A16)</option>
+            </select>
+          </div>
+          <div class="team-members" id="teamMembersContainer">
+            <!-- 16명의 팀원이 JavaScript로 동적 생성됩니다 -->
+          </div>
+        </div>
+
+        <!-- 실시간 생체신호 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5 2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"
+              />
+            </svg>
+            생체신호 분석
+          </div>
+          <div class="stat-item" style="margin-bottom: 1rem">
+            <div class="stat-value" style="color: var(--success-color)">
+              68 BPM
+            </div>
+            <div class="stat-label">평균 심박수</div>
+          </div>
+          <div class="stat-item" style="margin-bottom: 1rem">
+            <div class="stat-value" style="color: var(--warning-color)">
+              15.2
+            </div>
+            <div class="stat-label">스트레스 지수</div>
+          </div>
+          <div class="chart-container" style="height: 200px">
+            <canvas id="vitalChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 비교 분석 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M9,17H7v-7h2v7z M13,17h-2V7h2v10z M17,17h-2v-4h2v4z M19.5,19.1h-15V5h15v14.1z M19.5,3H4.5C3.4,3,2.5,3.9,2.5,5v14.1c0,1.1,0.9,2,2,2h15c1.1,0,2-0.9,2-2V5C21.5,3.9,20.6,3,19.5,3z"
+              />
+            </svg>
+            성과 비교
+          </div>
+          <div style="margin: 1rem 0">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.5rem;
+              "
+            >
+              <span>팀 평균 대비</span>
+              <span style="color: var(--success-color); font-weight: 600"
+                >+12점</span
+              >
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 75%"></div>
+            </div>
+          </div>
+          <div style="margin: 1rem 0">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.5rem;
+              "
+            >
+              <span>전체 평균 대비</span>
+              <span style="color: var(--success-color); font-weight: 600"
+                >+18점</span
+              >
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 82%"></div>
+            </div>
+          </div>
+          <div style="margin: 1rem 0">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.5rem;
+              "
+            >
+              <span>이전 훈련 대비</span>
+              <span style="color: var(--success-color); font-weight: 600"
+                >+5점</span
+              >
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 65%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 추천 훈련 -->
+        <div class="card">
+          <div class="card-title">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M5,13.18v4L12,21l7-3.82v-4L12,17.18L5,13.18zM12,10.18L22,5l-10-5L2,5L12,10.18z"
+              />
+            </svg>
+            추천 훈련과정
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1rem">
+            <div
+              style="
+                padding: 1rem;
+                background: var(--secondary-bg);
+                border-radius: 6px;
+                border-left: 3px solid var(--warning-color);
+                margin-bottom: 1rem;
+              "
+            >
+              <div style="font-weight: 600; color: var(--warning-color)">
+                우선 개선
+              </div>
+              <div style="font-size: 0.9rem; margin-top: 0.25rem">
+                상황판단력 향상 훈련
+              </div>
+            </div>
+            <div
+              style="
+                padding: 1rem;
+                background: var(--secondary-bg);
+                border-radius: 6px;
+                border-left: 3px solid var(--accent-color);
+                margin-bottom: 1rem;
+              "
+            >
+              <div style="font-weight: 600; color: var(--accent-color)">
+                권장
+              </div>
+              <div style="font-size: 0.9rem; margin-top: 0.25rem">
+                ROE 시나리오 훈련
+              </div>
+            </div>
+            <div
+              style="
+                padding: 1rem;
+                background: var(--secondary-bg);
+                border-radius: 6px;
+                border-left: 3px solid var(--success-color);
+              "
+            >
+              <div style="font-weight: 600; color: var(--success-color)">
+                보완
+              </div>
+              <div style="font-size: 0.9rem; margin-top: 0.25rem">
+                스트레스 관리 훈련
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 16명의 플레이어 데이터 (실제 JSON 파일에서 로드될 데이터를 시뮬레이션)
+      const playersData = {
+        P_A01: {
+          name: "P_A01",
+          role: "소대장",
+          team: "A",
+          scores: {
+            mobility: 92,
+            marksmanship: 88,
+            situation: 45,
+            mission: 95,
+            physio: 72,
+          },
+          overall: 88,
+          grade: "A",
+        },
+        P_A02: {
+          name: "P_A02",
+          role: "분대장",
+          team: "A",
+          scores: {
+            mobility: 65,
+            marksmanship: 95,
+            situation: 82,
+            mission: 78,
+            physio: 85,
+          },
+          overall: 81,
+          grade: "B+",
+        },
+        P_A03: {
+          name: "P_A03",
+          role: "분대원",
+          team: "A",
+          scores: {
+            mobility: 88,
+            marksmanship: 52,
+            situation: 75,
+            mission: 68,
+            physio: 90,
+          },
+          overall: 75,
+          grade: "B",
+        },
+        P_A04: {
+          name: "P_A04",
+          role: "분대원",
+          team: "A",
+          scores: {
+            mobility: 35,
+            marksmanship: 78,
+            situation: 42,
+            mission: 85,
+            physio: 38,
+          },
+          overall: 56,
+          grade: "C",
+        },
+        P_A05: {
+          name: "P_A05",
+          role: "분대장",
+          team: "B",
+          scores: {
+            mobility: 78,
+            marksmanship: 45,
+            situation: 95,
+            mission: 82,
+            physio: 65,
+          },
+          overall: 73,
+          grade: "B",
+        },
+        P_A06: {
+          name: "P_A06",
+          role: "분대원",
+          team: "B",
+          scores: {
+            mobility: 95,
+            marksmanship: 92,
+            situation: 38,
+            mission: 72,
+            physio: 88,
+          },
+          overall: 77,
+          grade: "B+",
+        },
+        P_A07: {
+          name: "P_A07",
+          role: "분대원",
+          team: "B",
+          scores: {
+            mobility: 42,
+            marksmanship: 68,
+            situation: 88,
+            mission: 35,
+            physio: 92,
+          },
+          overall: 65,
+          grade: "C+",
+        },
+        P_A08: {
+          name: "P_A08",
+          role: "분대원",
+          team: "B",
+          scores: {
+            mobility: 85,
+            marksmanship: 38,
+            situation: 72,
+            mission: 95,
+            physio: 48,
+          },
+          overall: 68,
+          grade: "B-",
+        },
+        P_A09: {
+          name: "P_A09",
+          role: "분대장",
+          team: "C",
+          scores: {
+            mobility: 52,
+            marksmanship: 88,
+            situation: 65,
+            mission: 42,
+            physio: 95,
+          },
+          overall: 68,
+          grade: "B-",
+        },
+        P_A10: {
+          name: "P_A10",
+          role: "분대원",
+          team: "C",
+          scores: {
+            mobility: 72,
+            marksmanship: 35,
+            situation: 92,
+            mission: 88,
+            physio: 58,
+          },
+          overall: 69,
+          grade: "B-",
+        },
+        P_A11: {
+          name: "P_A11",
+          role: "분대원",
+          team: "C",
+          scores: {
+            mobility: 95,
+            marksmanship: 78,
+            situation: 48,
+            mission: 65,
+            physio: 82,
+          },
+          overall: 74,
+          grade: "B",
+        },
+        P_A12: {
+          name: "P_A12",
+          role: "분대원",
+          team: "C",
+          scores: {
+            mobility: 38,
+            marksmanship: 92,
+            situation: 85,
+            mission: 52,
+            physio: 45,
+          },
+          overall: 62,
+          grade: "C+",
+        },
+        P_A13: {
+          name: "P_A13",
+          role: "분대장",
+          team: "D",
+          scores: {
+            mobility: 68,
+            marksmanship: 72,
+            situation: 95,
+            mission: 78,
+            physio: 35,
+          },
+          overall: 70,
+          grade: "B-",
+        },
+        P_A14: {
+          name: "P_A14",
+          role: "분대원",
+          team: "D",
+          scores: {
+            mobility: 88,
+            marksmanship: 48,
+            situation: 58,
+            mission: 92,
+            physio: 78,
+          },
+          overall: 73,
+          grade: "B",
+        },
+        P_A15: {
+          name: "P_A15",
+          role: "분대원",
+          team: "D",
+          scores: {
+            mobility: 45,
+            marksmanship: 85,
+            situation: 72,
+            mission: 38,
+            physio: 95,
+          },
+          overall: 67,
+          grade: "B-",
+        },
+        P_A16: {
+          name: "P_A16",
+          role: "분대원",
+          team: "D",
+          scores: {
+            mobility: 25,
+            marksmanship: 32,
+            situation: 28,
+            mission: 45,
+            physio: 22,
+          },
+          overall: 30,
+          grade: "D",
+        },
+      };
+
+      // 팀별 평균 데이터
+      const teamData = {
+        team_a: {
+          name: "A팀",
+          members: ["P_A01", "P_A02", "P_A03", "P_A04"],
+          scores: {
+            mobility: 70, // (92+65+88+35)/4
+            marksmanship: 78, // (88+95+52+78)/4
+            situation: 61, // (45+82+75+42)/4
+            mission: 82, // (95+78+68+85)/4
+            physio: 71, // (72+85+90+38)/4
+          },
+          overall: 75,
+        },
+        team_b: {
+          name: "B팀",
+          members: ["P_A05", "P_A06", "P_A07", "P_A08"],
+          scores: {
+            mobility: 78, // (78+95+42+85)/4
+            marksmanship: 61, // (45+92+68+38)/4
+            situation: 74, // (95+38+88+72)/4
+            mission: 71, // (82+72+35+95)/4
+            physio: 73, // (65+88+92+48)/4
+          },
+          overall: 71,
+        },
+        team_c: {
+          name: "C팀",
+          members: ["P_A09", "P_A10", "P_A11", "P_A12"],
+          scores: {
+            mobility: 64, // (52+72+95+38)/4
+            marksmanship: 73, // (88+35+78+92)/4
+            situation: 73, // (65+92+48+85)/4
+            mission: 61, // (42+88+65+52)/4
+            physio: 70, // (95+58+82+45)/4
+          },
+          overall: 68,
+        },
+        team_d: {
+          name: "D팀",
+          members: ["P_A13", "P_A14", "P_A15", "P_A16"],
+          scores: {
+            mobility: 57, // (68+88+45+25)/4
+            marksmanship: 61, // (72+48+85+32)/4
+            situation: 64, // (95+58+72+28)/4
+            mission: 63, // (78+92+38+45)/4
+            physio: 58, // (35+78+95+22)/4
+          },
+          overall: 61,
+        },
+        all_teams: {
+          name: "전체 평균",
+          scores: {
+            mobility: 67, // 전체 16명 평균
+            marksmanship: 68, // 전체 16명 평균
+            situation: 68, // 전체 16명 평균
+            mission: 69, // 전체 16명 평균
+            physio: 68, // 전체 16명 평균
+          },
+          overall: 69,
+        },
+      };
+
+      // 차트 객체들을 전역으로 저장
+      let radarChart, timelineChart, vitalChart;
+
+      // 등급 결정 함수
+      function getGradeClass(score) {
+        if (score >= 85) return "rank-excellent";
+        if (score >= 75) return "rank-good";
+        if (score >= 65) return "rank-average";
+        return "rank-poor";
+      }
+
+      // 등급 텍스트 결정 함수
+      function getGradeText(score) {
+        if (score >= 85) return "우수";
+        if (score >= 75) return "양호";
+        if (score >= 65) return "보통";
+        return "개선필요";
+      }
+
+      // 플레이어 선택 옵션 생성
+      function populatePlayerSelects() {
+        const playerSelect = document.getElementById("playerSelect");
+        const comparison1 = document.getElementById("comparison1");
+        const comparison2 = document.getElementById("comparison2");
+
+        // 기본 옵션 유지하고 나머지 추가
+        Object.keys(playersData).forEach((playerId) => {
+          const player = playersData[playerId];
+          const optionText = `${player.name} (${player.role})`;
+
+          if (playerId !== "P_A01") {
+            const option1 = new Option(optionText, playerId);
+            const option2 = new Option(optionText, playerId);
+            const option3 = new Option(optionText, playerId);
+
+            playerSelect.appendChild(option1);
+            comparison1.appendChild(option2);
+            comparison2.appendChild(option3);
+          }
+        });
+
+        // 비교 선택에 팀 평균 옵션들 추가
+        const teamOptions = [
+          { value: "team_avg", text: "팀 평균" },
+          { value: "team_a", text: "A팀 평균" },
+          { value: "team_b", text: "B팀 평균" },
+          { value: "team_c", text: "C팀 평균" },
+          { value: "team_d", text: "D팀 평균" },
+          { value: "all_teams", text: "전체 평균" },
+        ];
+
+        teamOptions.forEach((team) => {
+          const option = new Option(team.text, team.value);
+          comparison2.appendChild(option);
+        });
+      }
+
+      // 팀원 카드 렌더링
+      function renderTeamMembers(filter = "all") {
+        const container = document.getElementById("teamMembersContainer");
+        container.innerHTML = "";
+
+        let playersToShow = Object.keys(playersData);
+
+        if (filter !== "all") {
+          const teamLetter = filter.split("_")[1];
+          playersToShow = playersToShow.filter(
+            (id) => playersData[id].team === teamLetter.toUpperCase()
+          );
+        }
+
+        playersToShow.forEach((playerId) => {
+          const player = playersData[playerId];
+          const memberCard = document.createElement("div");
+          memberCard.className = "member-card";
+          // 플레이어 번호 추출 (P_A01 -> 01, P_A10 -> 10)
+          const playerNumber = playerId.replace("P_A", "");
+
+          memberCard.innerHTML = `
+            <div class="member-avatar">A${playerNumber}</div>
+            <div style="font-weight: 600; margin-bottom: 0.25rem">
+              ${player.name} ${playerId === "P_A01" ? "(본인)" : ""}
+            </div>
+            <div style="color: var(--text-secondary); font-size: 0.8rem">
+              ${player.role}
+            </div>
+            <div style="margin-top: 0.5rem">
+              <span class="rank-badge ${getGradeClass(player.overall)}">${
+            player.overall
+          }점</span>
+            </div>
+          `;
+          memberCard.addEventListener("click", () => selectPlayer(playerId));
+          container.appendChild(memberCard);
+        });
+      }
+
+      // 플레이어 선택 함수
+      function selectPlayer(playerId) {
+        document.getElementById("playerSelect").value = playerId;
+        document.querySelector(
+          'input[name="analysisType"][value="individual"]'
+        ).checked = true;
+        updateAnalysis();
+      }
+
+      // 레이더 차트 초기화 및 업데이트
+      function initRadarChart() {
+        const radarCtx = document.getElementById("radarChart").getContext("2d");
+        radarChart = new Chart(radarCtx, {
+          type: "radar",
+          data: {
+            labels: [
+              "기동능력",
+              "사격능력",
+              "상황조치능력",
+              "개인임무능력",
+              "신체반응분석",
+            ],
+            datasets: [],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            scales: {
+              r: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                  showLabelBackdrop: false,
+                  color: "#3f4g6p",
+                  font: { size: 14, weight: "bold" },
+                  stepSize: 20,
+                  display: true,
+                },
+                grid: {
+                  color: "#3a3a5c",
+                  lineWidth: 1,
+                },
+                angleLines: {
+                  color: "#3a3a5c",
+                  lineWidth: 1,
+                },
+                pointLabels: {
+                  color: "#ffffff",
+                  font: { size: 12, weight: "600" },
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#ffffff",
+                  font: { size: 12 },
+                  usePointStyle: true,
+                  padding: 20,
+                },
+              },
+            },
+          },
+        });
+        updateRadarChart();
+      }
+
+      // 레이더 차트 업데이트
+      function updateRadarChart() {
+        const analysisType = document.querySelector(
+          'input[name="analysisType"]:checked'
+        ).value;
+        let datasets = [];
+        let title = "";
+
+        if (analysisType === "individual") {
+          const playerId = document.getElementById("playerSelect").value;
+          const player = playersData[playerId];
+
+          datasets.push({
+            label: `${player.name} (${player.role})`,
+            data: [
+              player.scores.mobility,
+              player.scores.marksmanship,
+              player.scores.situation,
+              player.scores.mission,
+              player.scores.physio,
+            ],
+            fill: false,
+            borderColor: "#4c9eff",
+            backgroundColor: "#4c9eff",
+            pointBackgroundColor: "#4c9eff",
+            pointBorderColor: "#ffffff",
+            pointHoverBackgroundColor: "#ffffff",
+            pointHoverBorderColor: "#4c9eff",
+            borderWidth: 4,
+            pointRadius: 8,
+            pointBorderWidth: 3,
+          });
+
+          // 팀 평균 추가
+          const teamKey = `team_${player.team.toLowerCase()}`;
+          const team = teamData[teamKey];
+          datasets.push({
+            label: `${team.name} 평균`,
+            data: [
+              team.scores.mobility,
+              team.scores.marksmanship,
+              team.scores.situation,
+              team.scores.mission,
+              team.scores.physio,
+            ],
+            fill: false,
+            borderColor: "#4caf50",
+            pointBackgroundColor: "#4caf50",
+            pointBorderColor: "#ffffff",
+            pointHoverBackgroundColor: "#ffffff",
+            pointHoverBorderColor: "#4caf50",
+            borderWidth: 3,
+            pointRadius: 6,
+            pointBorderWidth: 2,
+          });
+
+          title = `<svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg> 종합 능력 평가 (다각형 분석) - ${player.name}`;
+        } else if (analysisType === "team") {
+          const teamKey = document.getElementById("teamSelect").value;
+          const team = teamData[teamKey];
+
+          datasets.push({
+            label: team.name,
+            data: [
+              team.scores.mobility,
+              team.scores.marksmanship,
+              team.scores.situation,
+              team.scores.mission,
+              team.scores.physio,
+            ],
+            fill: false,
+            borderColor: "#4c9eff",
+            pointBackgroundColor: "#4c9eff",
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: "#4c9eff",
+            borderWidth: 3,
+            pointRadius: 6,
+          });
+
+          // 전체 평균 추가
+          const allTeams = teamData.all_teams;
+          datasets.push({
+            label: "전체 평균",
+            data: [
+              allTeams.scores.mobility,
+              allTeams.scores.marksmanship,
+              allTeams.scores.situation,
+              allTeams.scores.mission,
+              allTeams.scores.physio,
+            ],
+            fill: false,
+            borderColor: "#ff9800",
+            pointBackgroundColor: "#ff9800",
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: "#ff9800",
+            borderWidth: 2,
+            pointRadius: 5,
+          });
+
+          title = `<svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg> 종합 능력 평가 (다각형 분석) - ${team.name}`;
+        } else if (analysisType === "comparison") {
+          const comp1 = document.getElementById("comparison1").value;
+          const comp2 = document.getElementById("comparison2").value;
+
+          // 첫 번째 비교 대상
+          if (playersData[comp1]) {
+            const player = playersData[comp1];
+            datasets.push({
+              label: `${player.name} (${player.role})`,
+              data: [
+                player.scores.mobility,
+                player.scores.marksmanship,
+                player.scores.situation,
+                player.scores.mission,
+                player.scores.physio,
+              ],
+              fill: true,
+              backgroundColor: "rgba(76, 158, 255, 0.15)",
+              borderColor: "#4c9eff",
+              pointBackgroundColor: "#4c9eff",
+              pointBorderColor: "#fff",
+              pointHoverBackgroundColor: "#fff",
+              pointHoverBorderColor: "#4c9eff",
+              borderWidth: 3,
+              pointRadius: 6,
+            });
+          }
+
+          // 두 번째 비교 대상
+          if (comp2 === "team_avg") {
+            const player1 = playersData[comp1];
+            const teamKey = `team_${player1.team.toLowerCase()}`;
+            const team = teamData[teamKey];
+            datasets.push({
+              label: `${team.name} 평균`,
+              data: [
+                team.scores.mobility,
+                team.scores.marksmanship,
+                team.scores.situation,
+                team.scores.mission,
+                team.scores.physio,
+              ],
+              fill: true,
+              backgroundColor: "rgba(76, 175, 80, 0.08)",
+              borderColor: "#4caf50",
+              pointBackgroundColor: "#4caf50",
+              pointBorderColor: "#fff",
+              pointHoverBackgroundColor: "#fff",
+              pointHoverBorderColor: "#4caf50",
+              borderWidth: 2,
+              pointRadius: 4,
+            });
+          } else if (teamData[comp2]) {
+            const team = teamData[comp2];
+            datasets.push({
+              label: team.name,
+              data: [
+                team.scores.mobility,
+                team.scores.marksmanship,
+                team.scores.situation,
+                team.scores.mission,
+                team.scores.physio,
+              ],
+              fill: true,
+              backgroundColor: "rgba(255, 152, 0, 0.08)",
+              borderColor: "#ff9800",
+              pointBackgroundColor: "#ff9800",
+              pointBorderColor: "#fff",
+              pointHoverBackgroundColor: "#fff",
+              pointHoverBorderColor: "#ff9800",
+              borderWidth: 2,
+              pointRadius: 4,
+            });
+          } else if (playersData[comp2]) {
+            const player = playersData[comp2];
+            datasets.push({
+              label: `${player.name} (${player.role})`,
+              data: [
+                player.scores.mobility,
+                player.scores.marksmanship,
+                player.scores.situation,
+                player.scores.mission,
+                player.scores.physio,
+              ],
+              fill: true,
+              backgroundColor: "rgba(255, 152, 0, 0.08)",
+              borderColor: "#ff9800",
+              pointBackgroundColor: "#ff9800",
+              pointBorderColor: "#fff",
+              pointHoverBackgroundColor: "#fff",
+              pointHoverBorderColor: "#ff9800",
+              borderWidth: 2,
+              pointRadius: 4,
+            });
+          }
+
+          title =
+            '<svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg> 종합 능력 평가 (비교 분석)';
+        }
+
+        radarChart.data.datasets = datasets;
+        radarChart.update();
+        document.getElementById("chartTitle").innerHTML = title;
+      }
+
+      // 분석 업데이트
+      function updateAnalysis() {
+        updateRadarChart();
+
+        const analysisType = document.querySelector(
+          'input[name="analysisType"]:checked'
+        ).value;
+
+        // 컨트롤 표시/숨김
+        document.getElementById("individualControl").style.display =
+          analysisType === "individual" ? "block" : "none";
+        document.getElementById("teamControl").style.display =
+          analysisType === "team" ? "block" : "none";
+        document.getElementById("comparisonControl").style.display =
+          analysisType === "comparison" ? "block" : "none";
+      }
+
+      // 타임라인 차트 초기화
+      function initTimelineChart() {
+        const timelineCtx = document
+          .getElementById("timelineChart")
+          .getContext("2d");
+        timelineChart = new Chart(timelineCtx, {
+          type: "line",
+          data: {
+            labels: [
+              "00:00",
+              "00:15",
+              "00:30",
+              "00:45",
+              "01:00",
+              "01:15",
+              "01:30",
+              "01:45",
+              "02:00",
+            ],
+            datasets: [
+              {
+                label: "종합 점수",
+                data: [85, 88, 87, 82, 76, 78, 82, 85, 87],
+                borderColor: "#4c9eff",
+                backgroundColor: "rgba(76, 158, 255, 0.1)",
+                tension: 0.4,
+                fill: true,
+              },
+              {
+                label: "스트레스 지수",
+                data: [45, 48, 52, 58, 65, 78, 75, 58, 48],
+                borderColor: "#ff9800",
+                backgroundColor: "rgba(255, 152, 0, 0.08)",
+                tension: 0.4,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                ticks: { color: "#b0b0b0" },
+                grid: { color: "#3a3a5c" },
+                title: {
+                  display: true,
+                  text: "훈련 시간 (2시간)",
+                  color: "#b0b0b0",
+                },
+              },
+              y: {
+                ticks: { color: "#b0b0b0" },
+                grid: { color: "#3a3a5c" },
+                title: {
+                  display: true,
+                  text: "점수",
+                  color: "#b0b0b0",
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#ffffff",
+                  usePointStyle: true,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // 생체신호 차트 초기화
+      function initVitalChart() {
+        const vitalCtx = document.getElementById("vitalChart").getContext("2d");
+        vitalChart = new Chart(vitalCtx, {
+          type: "line",
+          data: {
+            labels: [
+              "00:00",
+              "00:15",
+              "00:30",
+              "00:45",
+              "01:00",
+              "01:15",
+              "01:30",
+              "01:45",
+              "02:00",
+            ],
+            datasets: [
+              {
+                label: "심박수 (BPM)",
+                data: [65, 68, 70, 85, 92, 88, 75, 72, 68],
+                borderColor: "#f44336",
+                backgroundColor: "rgba(244, 67, 54, 0.1)",
+                tension: 0.4,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                ticks: { color: "#b0b0b0", font: { size: 10 } },
+                grid: { color: "#3a3a5c" },
+                title: {
+                  display: true,
+                  text: "훈련 시간",
+                  color: "#b0b0b0",
+                  font: { size: 10 },
+                },
+              },
+              y: {
+                ticks: { color: "#b0b0b0", font: { size: 10 } },
+                grid: { color: "#3a3a5c" },
+                title: {
+                  display: true,
+                  text: "BPM",
+                  color: "#b0b0b0",
+                  font: { size: 10 },
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+          },
+        });
+      }
+
+      // 초기화
+      document.addEventListener("DOMContentLoaded", function () {
+        populatePlayerSelects();
+        renderTeamMembers();
+        initRadarChart();
+        initTimelineChart();
+        initVitalChart();
+
+        // 이벤트 리스너 등록
+        document
+          .querySelectorAll('input[name="analysisType"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", updateAnalysis);
+          });
+
+        document
+          .getElementById("playerSelect")
+          .addEventListener("change", updateRadarChart);
+        document
+          .getElementById("teamSelect")
+          .addEventListener("change", updateRadarChart);
+        document
+          .getElementById("comparison1")
+          .addEventListener("change", updateRadarChart);
+        document
+          .getElementById("comparison2")
+          .addEventListener("change", updateRadarChart);
+
+        document
+          .getElementById("teamFilter")
+          .addEventListener("change", function () {
+            renderTeamMembers(this.value);
+          });
+      });
+    </script>
+  </body>
+</html>
